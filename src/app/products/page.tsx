@@ -448,7 +448,7 @@ export default function ProductsPage() {
                       {/* Heart Icon */}
                       <button
                         className={`absolute top-4 right-4 z-10 p-2 rounded-full transition-colors ${
-                          isFavorite ? "bg-red-100 text-red-500" : "hover:bg-white/80 text-gray-600 hover:text-red-500"
+                          isFavorite ? "bg-red-100 text-red-500" : "hover:bg-white text-gray-600 hover:text-red-500"
                         }`}
                         onClick={(e) => {
                           e.preventDefault()

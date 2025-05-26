@@ -336,9 +336,9 @@ export default function ProductDetailPage() {
               <div className="w-[550px] h-[600px] bg-gray-200 rounded" />
             </div>
             <div className="flex flex-col gap-4 max-w-lg">
-              <div className="h-8 bg-gray-200 rounded w-3/4" />
-              <div className="h-4 bg-gray-200 rounded w-1/2" />
-              <div className="h-6 bg-gray-200 rounded w-1/4" />
+              <div className="h-8 bg-gray-200 rounded w-3" />
+              <div className="h-4 bg-gray-200 rounded w-1" />
+              <div className="h-6 bg-gray-200 rounded w-1" />
               <div className="h-32 bg-gray-200 rounded" />
             </div>
           </div>
@@ -414,7 +414,7 @@ export default function ProductDetailPage() {
                     <button
                       onClick={() => setIsFavorite(!isFavorite)}
                       className={`absolute top-4 right-4 p-3 rounded-full transition-colors ${
-                        isFavorite ? "bg-red-100 text-red-500" : "bg-white/80 text-gray-600 hover:text-red-500"
+                        isFavorite ? "bg-red-100 text-red-500" : "bg-white text-gray-600 hover:text-red-500"
                       }`}
                     >
                       <Heart className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
