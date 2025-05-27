@@ -259,7 +259,7 @@ export default function HomePage() {
       </section>
 
       {/* Trending Section */}
-      <section className="bg-gray-50 py-16">
+      {/* <section className="bg-gray-50 py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold mb-8">Trending</h2>
           {productsLoading ? (
@@ -298,7 +298,47 @@ export default function HomePage() {
             </div>
           )}
         </div>
-      </section>
+      </section> */}
+      <section className="bg-gray-50 py-16">
+  <div className="container mx-auto px-4">
+    <h2 className="mb-8">Trending</h2>
+    {productsLoading ? (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {[1, 2, 3].map((i) => (
+          <ProductCardSkeleton key={i} />
+        ))}
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {trendingProducts.map((product: Product) => {
+          const image = product.images[0]?.url || "/placeholder.svg?height=300&width=400"
+          return (
+            <Link key={product.id} href={`/products/${product.slug}`} className="group cursor-pointer">
+              <div className="relative h-[300px] bg-white overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div className="w-full h-full flex items-center justify-center p-8">
+                  <Image
+                    src={formatImageUrl(image) || "/placeholder.svg"}
+                    alt={product.title}
+                    fill
+                    className="object-contain group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.src = "/placeholder.svg?height=300&width=400"
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="mt-4">
+                <h3 className="font-semibold">{product.title}</h3>
+                <p className="text-gray-600">SAR {product.price.toLocaleString()}.00</p>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    )}
+  </div>
+</section>
 
       {/* Categories */}
       <section className="container mx-auto px-4 py-16">
