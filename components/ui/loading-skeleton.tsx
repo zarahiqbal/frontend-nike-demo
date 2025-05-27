@@ -2,7 +2,6 @@ import type React from "react"
 import { cn } from "../../lib/utils"
 
 interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
-  // Adding a comment to make the interface non-empty
 }
 
 export function Skeleton({ className, ...props }: SkeletonProps) {

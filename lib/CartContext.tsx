@@ -1,64 +1,3 @@
-// // lib/CartContext.tsx
-// 'use client';
-// import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-// type CartItem = {
-//   id: number;
-//   title: string;
-//   price: number;
-//   size: string;
-//   quantity: number;
-//   image: string;
-// };
-
-// type CartContextType = {
-//   items: CartItem[];
-//   addItem: (item: CartItem) => void;
-//   removeItem: (id: number, size: string) => void;
-//   clearCart: () => void;
-// };
-
-// const CartContext = createContext<CartContextType | undefined>(undefined);
-
-// export const CartProvider = ({ children }: { children: ReactNode }) => {
-//   const [items, setItems] = useState<CartItem[]>([]);
-
-//   const addItem = (item: CartItem) => {
-//     setItems((currItems) => {
-//       // Check if item with same id and size exists, increment qty if yes
-//       const idx = currItems.findIndex(
-//         (i) => i.id === item.id && i.size === item.size
-//       );
-//       if (idx > -1) {
-//         const newItems = [...currItems];
-//         newItems[idx].quantity += item.quantity;
-//         return newItems;
-//       }
-//       return [...currItems, item];
-//     });
-//   };
-
-//   const removeItem = (id: number, size: string) => {
-//     setItems((currItems) =>
-//       currItems.filter((i) => !(i.id === id && i.size === size))
-//     );
-//   };
-
-//   const clearCart = () => setItems([]);
-
-//   return (
-//     <CartContext.Provider value={{ items, addItem, removeItem, clearCart }}>
-//       {children}
-//     </CartContext.Provider>
-//   );
-// };
-
-// export const useCart = () => {
-//   const context = useContext(CartContext);
-//   if (!context) throw new Error('useCart must be used within CartProvider');
-//   return context;
-// };
-
 
 "use client"
 import { createContext, useContext, useState, type ReactNode, useCallback, useMemo, useEffect } from "react"
@@ -176,3 +115,101 @@ export const useCart = () => {
   }
   return context
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // lib/CartContext.tsx
+// 'use client';
+// import React, { createContext, useContext, useState, ReactNode } from 'react';
+
+// type CartItem = {
+//   id: number;
+//   title: string;
+//   price: number;
+//   size: string;
+//   quantity: number;
+//   image: string;
+// };
+
+// type CartContextType = {
+//   items: CartItem[];
+//   addItem: (item: CartItem) => void;
+//   removeItem: (id: number, size: string) => void;
+//   clearCart: () => void;
+// };
+
+// const CartContext = createContext<CartContextType | undefined>(undefined);
+
+// export const CartProvider = ({ children }: { children: ReactNode }) => {
+//   const [items, setItems] = useState<CartItem[]>([]);
+
+//   const addItem = (item: CartItem) => {
+//     setItems((currItems) => {
+//       // Check if item with same id and size exists, increment qty if yes
+//       const idx = currItems.findIndex(
+//         (i) => i.id === item.id && i.size === item.size
+//       );
+//       if (idx > -1) {
+//         const newItems = [...currItems];
+//         newItems[idx].quantity += item.quantity;
+//         return newItems;
+//       }
+//       return [...currItems, item];
+//     });
+//   };
+
+//   const removeItem = (id: number, size: string) => {
+//     setItems((currItems) =>
+//       currItems.filter((i) => !(i.id === id && i.size === size))
+//     );
+//   };
+
+//   const clearCart = () => setItems([]);
+
+//   return (
+//     <CartContext.Provider value={{ items, addItem, removeItem, clearCart }}>
+//       {children}
+//     </CartContext.Provider>
+//   );
+// };
+
+// export const useCart = () => {
+//   const context = useContext(CartContext);
+//   if (!context) throw new Error('useCart must be used within CartProvider');
+//   return context;
+// };
+

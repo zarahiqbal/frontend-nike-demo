@@ -1,4 +1,3 @@
-// This file contains the API configuration for the application.
 import axios from 'axios';
 
 const api = axios.create({

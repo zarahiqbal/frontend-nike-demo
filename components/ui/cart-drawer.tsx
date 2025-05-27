@@ -14,7 +14,6 @@ export function CartDrawer() {
     return url.startsWith("http") ? url : `https://elegant-duck-3bccb7b995.strapiapp.com${url}`
   }
 
-  // Don't render until cart is loaded to prevent hydration issues
   if (!isLoaded) {
     return (
       <Button variant="ghost" size="icon" className="fixed top-4 right-4 z-50 bg-white shadow-lg hover:bg-gray-100">
