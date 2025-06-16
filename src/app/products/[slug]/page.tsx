@@ -527,17 +527,17 @@
 //   )
 // }
 
-
 "use client"
 
 import { useState, useMemo } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Heart, Truck, RotateCcw } from "lucide-react"
+import { ArrowLeft, Heart, Truck, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react"
 import { useCart } from "../../../../lib/CartContext"
 import { CartDrawer } from "../../../../components/ui/cart-drawer"
 import { Button } from "../../../../components/ui/button"
 import { useApi } from "../../../../hooks/use-api"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../../../components/ui/dialog"
 
 type ProductDetail = {
   id: number
@@ -556,6 +556,11 @@ export default function ProductDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const { addItem } = useCart()
+
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogTitle, setDialogTitle] = useState("")
+  const [dialogMessage, setDialogMessage] = useState("")
+  const [dialogType, setDialogType] = useState<"success" | "error" | "warning">("success")
 
   const {
     data: productData,
@@ -584,17 +589,38 @@ export default function ProductDetailPage() {
     return url.startsWith("http") ? url : `https://elegant-duck-3bccb7b995.strapiapp.com${url}`
   }
 
+  const showDialog = (title: string, message: string, type: "success" | "error" | "warning" = "success") => {
+    setDialogTitle(title)
+    setDialogMessage(message)
+    setDialogType(type)
+    setDialogOpen(true)
+  }
+
+  const handlePrevImage = () => {
+    if (!product?.images.length) return
+    setMainImageIndex((prev) => (prev === 0 ? product.images.length - 1 : prev - 1))
+  }
+
+  const handleNextImage = () => {
+    if (!product?.images.length) return
+    setMainImageIndex((prev) => (prev === product.images.length - 1 ? 0 : prev + 1))
+  }
+
+  // const handleDotClick = (index: number) => {
+  //   setMainImageIndex(index)
+  // }
+
   const handleAddToCart = async () => {
     if (!product) return
 
     if (!selectedSize) {
-      alert("Please select a shoe size.")
+      showDialog("Size Required", "Please select a shoe size.", "warning")
       return
     }
 
     const selectedSizeOption = product.sizes.find((s: { size: string; in_stock: boolean }) => s.size === selectedSize)
     if (!selectedSizeOption?.in_stock) {
-      alert("This size is out of stock.")
+      showDialog("Out of Stock", "This size is currently out of stock.", "error")
       return
     }
 
@@ -610,68 +636,93 @@ export default function ProductDetailPage() {
         image: product.images[mainImageIndex]?.url || "",
       })
 
-      // Show success feedback
-      alert("Added to cart!")
+      showDialog("Success", "Item added to cart successfully!", "success")
     } catch (error) {
-      alert("Failed to add to cart. Please try again.")
+      showDialog("Error", "Failed to add to cart. Please try again.", "error")
     } finally {
       setIsAddingToCart(false)
     }
   }
 
   // Add loading skeleton that matches the final layout structure
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="fixed top-0 left-0 right-0 bg-white shadow-sm z-40 border-b">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-gray-200 rounded animate-pulse" />
-              <div className="w-32 h-5 bg-gray-200 rounded animate-pulse" />
-            </div>
+  // ...existing code...
+
+if (loading) {
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="fixed top-0 left-0 right-0 bg-white shadow-sm z-40 border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-gray-200 rounded animate-pulse" />
+            <div className="w-32 h-5 bg-gray-200 rounded animate-pulse" />
           </div>
         </div>
-        <div className="pt-20 px-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col lg:flex-row gap-12">
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="flex md:flex-col gap-2">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="w-20 h-20 bg-gray-200 rounded animate-pulse" />
+      </div>
+      <div className="pt-16 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col lg:flex-row gap-12">
+            {/* Left: Images Section */}
+            <div className="flex gap-6">
+              {/* Thumbnail Images - Left Side Vertical */}
+              <div className="flex flex-col gap-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="w-16 h-16 bg-gray-200 rounded-lg animate-pulse" />
+                ))}
+              </div>
+              {/* Main Image and Navigation */}
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative w-full max-w-[550px] h-[600px] bg-gray-200 rounded-lg animate-pulse" />
+                <div className="flex gap-4 mt-4">
+                  <div className="w-125 h-12 bg-gray-200 rounded-full animate-pulse" />
+                  <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse" />
+                </div>
+              </div>
+            </div>
+            {/* Right: Product Info */}
+            <div className="flex flex-col gap-6 max-w-lg w-full">
+              <div>
+                <div className="h-5 w-20 bg-gray-200 rounded mb-2 animate-pulse" />
+                <div className="h-10 w-3/4 bg-gray-200 rounded mb-2 animate-pulse" />
+                <div className="h-5 w-1/3 bg-gray-200 rounded mb-4 animate-pulse" />
+                <div className="h-8 w-1/4 bg-gray-200 rounded mb-2 animate-pulse" />
+              </div>
+              {/* Size Selection Skeleton */}
+              <div>
+                <div className="h-5 w-32 bg-gray-200 rounded mb-3 animate-pulse" />
+                <div className="grid grid-cols-3 gap-2">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="h-12 bg-gray-200 rounded-lg animate-pulse" />
                   ))}
                 </div>
-                <div className="w-full max-w-[550px] h-[600px] bg-gray-200 rounded animate-pulse" />
               </div>
-              <div className="flex flex-col gap-6 max-w-lg">
-                <div className="space-y-4">
-                  <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
-                  <div className="h-6 bg-gray-200 rounded w-1/3 animate-pulse" />
+              {/* Add to Cart Button Skeleton */}
+              <div className="h-14 w-full bg-gray-200 rounded-full animate-pulse" />
+              {/* Description Skeleton */}
+              <div>
+                <div className="h-6 w-32 bg-gray-200 rounded mb-2 animate-pulse" />
+                <div className="space-y-2">
+                  <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-5/6 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse" />
                 </div>
-                <div className="space-y-3">
-                  <div className="h-5 bg-gray-200 rounded w-1/4 animate-pulse" />
-                  <div className="grid grid-cols-3 gap-2">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className="h-12 bg-gray-200 rounded animate-pulse" />
-                    ))}
-                  </div>
-                </div>
-                <div className="h-12 bg-gray-200 rounded animate-pulse" />
-                <div className="space-y-3">
-                  <div className="h-5 bg-gray-200 rounded w-1/3 animate-pulse" />
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded animate-pulse" />
-                    <div className="h-4 bg-gray-200 rounded animate-pulse" />
-                    <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
-                  </div>
+              </div>
+              {/* Delivery and Returns Skeleton */}
+              <div className="border-t pt-6">
+                <div className="h-5 w-48 bg-gray-200 rounded mb-2 animate-pulse" />
+                <div className="space-y-2">
+                  <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-5/6 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse" />
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
+}
+// ...existing code...
 
   if (error || !product) {
     return (
@@ -691,69 +742,88 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-white">
       <CartDrawer />
 
-      {/* Header */}
-      <div className="fixed top-0 left-0 right-0 bg-white shadow-sm z-40 border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <Link
-            href="/products"
-            className="flex items-center gap-2 text-gray-900 hover:text-gray-700 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back to Products</span>
-          </Link>
-        </div>
-      </div>
+      
 
-      <div className="pt-20 px-6">
+      <div className="pt-16 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col lg:flex-row gap-12">
-            {/* Left: Images */}
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* Thumbnail Images */}
-              <div className="flex md:flex-col gap-2 order-2 md:order-1">
+            {/* Left: Images Section */}
+            <div className="flex gap-6">
+              {/* Thumbnail Images - Left Side Vertical */}
+              <div className="flex flex-col gap-2">
                 {product.images.map((img: { url: string }, i: number) => (
                   <button
                     key={i}
                     onClick={() => setMainImageIndex(i)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
-                      mainImageIndex === i ? "border-black" : "border-transparent hover:border-gray-300"
+                    onMouseEnter={() => setMainImageIndex(i)}
+                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                      mainImageIndex === i
+                        ? "border-transparent-400 scale-105"
+                        : "border-transparent hover:border-gray-300 hover:scale-102"
                     }`}
                   >
                     <img
                       src={formatImageUrl(img.url) || "/placeholder.svg"}
                       alt={`${product.title} ${i + 1}`}
+                      width={64}
+                      height={64}
                       className="w-full h-full object-cover"
                       loading="lazy"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement
-                        target.src = "/placeholder.svg?height=80&width=80"
+                        target.src = "/placeholder.svg?height=64&width=64"
                       }}
                     />
                   </button>
                 ))}
               </div>
 
-              {/* Main Image */}
-              <div className="order-1 md:order-2">
-                {product.images[mainImageIndex] && (
-                  <div className="relative">
-                    <img
-                      src={formatImageUrl(product.images[mainImageIndex].url) || "/placeholder.svg"}
-                      alt={product.title}
-                      className="w-full max-w-[550px] h-[600px] object-cover rounded-lg"
-                      loading="eager"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.src = "/placeholder.svg?height=600&width=550"
-                      }}
-                    />
+              {/* Main Image and Navigation */}
+              <div className="flex flex-col items-center gap-4">
+                {/* Main Image */}
+                <div className="relative">
+                  {product.images[mainImageIndex] && (
+                    <div className="relative w-full max-w-[550px] h-[600px] bg-gray-100 rounded-lg overflow-hidden">
+                      <img
+                        src={formatImageUrl(product.images[mainImageIndex].url) || "/placeholder.svg"}
+                        alt={product.title}
+                        width={550}
+                        height={600}
+                        className="w-full h-full object-cover"
+                        loading="eager"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.src = "/placeholder.svg?height=600&width=550"
+                        }}
+                      />
+                      <button
+                        onClick={() => setIsFavorite(!isFavorite)}
+                        className={`absolute top-4 right-4 p-3 rounded-full transition-colors ${
+                          isFavorite ? "bg-red-100 text-red-500" : "bg-white text-gray-600 hover:text-red-500"
+                        }`}
+                      >
+                        <Heart className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Yellow Circular Navigation Arrows */}
+                {product.images.length > 1 && (
+                  <div className="flex gap-4">
                     <button
-                      onClick={() => setIsFavorite(!isFavorite)}
-                      className={`absolute top-4 right-4 p-3 rounded-full transition-colors ${
-                        isFavorite ? "bg-red-100 text-red-500" : "bg-white text-gray-600 hover:text-red-500"
-                      }`}
+                      onClick={handlePrevImage}
+                      className="w-12 h-12 rounded-full bg-transparent-400 hover:bg-transparent-500 text-black transition-colors flex items-center justify-center shadow-lg"
+                      aria-label="Previous image"
                     >
-                      <Heart className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <button
+                      onClick={handleNextImage}
+                      className="w-12 h-12 rounded-full bg-transparent-400 hover:bg-transparent-500 text-black transition-colors flex items-center justify-center shadow-lg"
+                      aria-label="Next image"
+                    >
+                      <ChevronRight className="w-6 h-6" />
                     </button>
                   </div>
                 )}
@@ -763,6 +833,7 @@ export default function ProductDetailPage() {
             {/* Right: Product Info */}
             <div className="flex flex-col gap-6 max-w-lg">
               <div>
+                <div className="text-orange-500 text-sm font-medium mb-2">Just in</div>
                 <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
                 {product.category && <p className="text-gray-600 mb-4">{product.category.name}</p>}
                 <p className="text-2xl font-semibold">SAR {product.price.toLocaleString()}.00</p>
@@ -797,7 +868,12 @@ export default function ProductDetailPage() {
               )}
 
               {/* Add to Cart Button */}
-              <Button onClick={handleAddToCart} disabled={!selectedSize || isAddingToCart} size="lg" className="w-full">
+              <Button
+                onClick={handleAddToCart}
+                disabled={!selectedSize || isAddingToCart}
+                size="lg"
+                className="w-full bg-black hover:bg-gray-800 text-white rounded-full py-4"
+              >
                 {isAddingToCart ? "Adding..." : "Add to Bag"}
               </Button>
 
@@ -853,6 +929,753 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+      {/* Dialog Component */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle
+              className={`${
+                dialogType === "success"
+                  ? "text-green-600"
+                  : dialogType === "error"
+                    ? "text-red-600"
+                    : "text-yellow-600"
+              }`}
+            >
+              {dialogTitle}
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">{dialogMessage}</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end mt-4">
+            <Button
+              onClick={() => setDialogOpen(false)}
+              className={`${
+                dialogType === "success"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : dialogType === "error"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-yellow-600 hover:bg-yellow-700"
+              } text-white`}
+            >
+              OK
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+
+
+//with arrows and hover effects
+
+// "use client"
+
+// import { useState, useMemo } from "react"
+// import { useParams } from "next/navigation"
+// import Link from "next/link"
+// import { ArrowLeft, Heart, Truck, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react"
+// import { useCart } from "../../../../lib/CartContext"
+// import { CartDrawer } from "../../../../components/ui/cart-drawer"
+// import { Button } from "../../../../components/ui/button"
+// import { useApi } from "../../../../hooks/use-api"
+
+// type ProductDetail = {
+//   id: number
+//   title: string
+//   description: string
+//   price: number
+//   images: { url: string }[]
+//   sizes: { size: string; in_stock: boolean }[]
+//   category?: { name: string }
+// }
+
+// export default function ProductDetailPage() {
+//   const { slug } = useParams()
+//   const [selectedSize, setSelectedSize] = useState<string>("")
+//   const [mainImageIndex, setMainImageIndex] = useState(0)
+//   const [isFavorite, setIsFavorite] = useState(false)
+//   const [isAddingToCart, setIsAddingToCart] = useState(false)
+//   const { addItem } = useCart()
+
+//   const {
+//     data: productData,
+//     loading,
+//     error,
+//   } = useApi<any>(`https://elegant-duck-3bccb7b995.strapiapp.com/api/products?filters[slug][$eq]=${slug}&populate=*`)
+
+//   const product = useMemo(() => {
+//     if (!productData?.data?.[0]) return null
+
+//     const p = productData.data[0]
+//     return {
+//       id: p.id,
+//       title: p.attributes?.title || p.title,
+//       description: p.attributes?.Description || p.Description || "No description available.",
+//       price: p.attributes?.Price || p.Price,
+//       images: (p.attributes?.images?.data || p.images || []).map((img: any) => ({
+//         url: img.attributes?.url || img.url,
+//       })),
+//       sizes: p.attributes?.size || p.size || [],
+//       category: p.attributes?.category ? { name: p.attributes.category.name } : undefined,
+//     }
+//   }, [productData])
+
+//   const formatImageUrl = (url: string) => {
+//     return url.startsWith("http") ? url : `https://elegant-duck-3bccb7b995.strapiapp.com${url}`
+//   }
+
+//   const handlePrevImage = () => {
+//     if (!product?.images.length) return
+//     setMainImageIndex((prev) => (prev === 0 ? product.images.length - 1 : prev - 1))
+//   }
+
+//   const handleNextImage = () => {
+//     if (!product?.images.length) return
+//     setMainImageIndex((prev) => (prev === product.images.length - 1 ? 0 : prev + 1))
+//   }
+
+//   const handleDotClick = (index: number) => {
+//     setMainImageIndex(index)
+//   }
+
+//   const handleAddToCart = async () => {
+//     if (!product) return
+
+//     if (!selectedSize) {
+//       alert("Please select a shoe size.")
+//       return
+//     }
+
+//     const selectedSizeOption = product.sizes.find((s: { size: string; in_stock: boolean }) => s.size === selectedSize)
+//     if (!selectedSizeOption?.in_stock) {
+//       alert("This size is out of stock.")
+//       return
+//     }
+
+//     setIsAddingToCart(true)
+
+//     try {
+//       addItem({
+//         id: product.id,
+//         title: product.title,
+//         price: product.price,
+//         size: selectedSize,
+//         quantity: 1,
+//         image: product.images[mainImageIndex]?.url || "",
+//       })
+
+//       alert("Added to cart!")
+//     } catch (error) {
+//       alert("Failed to add to cart. Please try again.")
+//     } finally {
+//       setIsAddingToCart(false)
+//     }
+//   }
+
+//   // Add loading skeleton that matches the final layout structure
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen bg-white">
+//         <div className="fixed top-0 left-0 right-0 bg-white shadow-sm z-40 border-b">
+//           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+//             <div className="flex items-center gap-2">
+//               <div className="w-5 h-5 bg-gray-200 rounded animate-pulse" />
+//               <div className="w-32 h-5 bg-gray-200 rounded animate-pulse" />
+//             </div>
+//           </div>
+//         </div>
+//         <div className="pt-20 px-6">
+//           <div className="max-w-7xl mx-auto">
+//             <div className="flex flex-col lg:flex-row gap-12">
+//               <div className="flex gap-6">
+//                 <div className="flex flex-col gap-2">
+//                   {[1, 2, 3, 4, 5].map((i) => (
+//                     <div key={i} className="w-16 h-16 bg-gray-200 rounded animate-pulse" />
+//                   ))}
+//                 </div>
+//                 <div className="flex flex-col items-center gap-4">
+//                   <div className="w-full max-w-[550px] h-[600px] bg-gray-200 rounded animate-pulse" />
+//                   <div className="flex gap-4">
+//                     <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse" />
+//                     <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse" />
+//                   </div>
+//                 </div>
+//               </div>
+//               <div className="flex flex-col gap-6 max-w-lg">
+//                 <div className="space-y-4">
+//                   <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse" />
+//                   <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
+//                   <div className="h-6 bg-gray-200 rounded w-1/3 animate-pulse" />
+//                 </div>
+//                 <div className="space-y-3">
+//                   <div className="h-5 bg-gray-200 rounded w-1/4 animate-pulse" />
+//                   <div className="grid grid-cols-3 gap-2">
+//                     {[1, 2, 3, 4, 5, 6].map((i) => (
+//                       <div key={i} className="h-12 bg-gray-200 rounded animate-pulse" />
+//                     ))}
+//                   </div>
+//                 </div>
+//                 <div className="h-12 bg-gray-200 rounded animate-pulse" />
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     )
+//   }
+
+//   if (error || !product) {
+//     return (
+//       <div className="min-h-screen bg-white flex items-center justify-center">
+//         <div className="text-center">
+//           <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+//           <p className="text-gray-600 mb-6">The product you're looking for doesn't exist.</p>
+//           <Link href="/products">
+//             <Button>Back to Products</Button>
+//           </Link>
+//         </div>
+//       </div>
+//     )
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-white">
+//       <CartDrawer />
+
+//       {/* Header */}
+//       <div className="fixed top-0 left-0 right-0 bg-white shadow-sm z-40 border-b">
+//         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+//           <Link
+//             href="/products"
+//             className="flex items-center gap-2 text-gray-900 hover:text-gray-700 transition-colors"
+//           >
+//             <ArrowLeft className="w-5 h-5" />
+//             <span className="font-medium">Back to Products</span>
+//           </Link>
+//         </div>
+//       </div>
+
+//       <div className="pt-20 px-6">
+//         <div className="max-w-7xl mx-auto">
+//           <div className="flex flex-col lg:flex-row gap-12">
+//             {/* Left: Images Section */}
+//             <div className="flex gap-6">
+//               {/* Thumbnail Images - Left Side Vertical */}
+//               <div className="flex flex-col gap-2">
+//                 {product.images.map((img: { url: string }, i: number) => (
+//                   <button
+//                     key={i}
+//                     onClick={() => setMainImageIndex(i)}
+//                     onMouseEnter={() => setMainImageIndex(i)}
+//                     className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+//                       mainImageIndex === i
+//                         ? "border-transparent-400 scale-105"
+//                         : "border-transparent hover:border-gray-300 hover:scale-102"
+//                     }`}
+//                   >
+//                     <img
+//                       src={formatImageUrl(img.url) || "/placeholder.svg"}
+//                       alt={`${product.title} ${i + 1}`}
+//                       width={64}
+//                       height={64}
+//                       className="w-full h-full object-cover"
+//                       loading="lazy"
+//                       onError={(e) => {
+//                         const target = e.target as HTMLImageElement
+//                         target.src = "/placeholder.svg?height=64&width=64"
+//                       }}
+//                     />
+//                   </button>
+//                 ))}
+//               </div>
+
+//               {/* Main Image and Navigation */}
+//               <div className="flex flex-col items-center gap-4">
+//                 {/* Main Image */}
+//                 <div className="relative">
+//                   {product.images[mainImageIndex] && (
+//                     <div className="relative w-full max-w-[550px] h-[600px] bg-gray-100 rounded-lg overflow-hidden">
+//                       <img
+//                         src={formatImageUrl(product.images[mainImageIndex].url) || "/placeholder.svg"}
+//                         alt={product.title}
+//                         width={550}
+//                         height={600}
+//                         className="w-full h-full object-cover"
+//                         loading="eager"
+//                         onError={(e) => {
+//                           const target = e.target as HTMLImageElement
+//                           target.src = "/placeholder.svg?height=600&width=550"
+//                         }}
+//                       />
+//                       <button
+//                         onClick={() => setIsFavorite(!isFavorite)}
+//                         className={`absolute top-4 right-4 p-3 rounded-full transition-colors ${
+//                           isFavorite ? "bg-red-100 text-red-500" : "bg-white text-gray-600 hover:text-red-500"
+//                         }`}
+//                       >
+//                         <Heart className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
+//                       </button>
+//                     </div>
+//                   )}
+//                 </div>
+
+//                 {/* Yellow Circular Navigation Arrows */}
+//                 {product.images.length > 1 && (
+//                   <div className="flex gap-4">
+//                     <button
+//                       onClick={handlePrevImage}
+//                       className="w-12 h-12 rounded-full bg-transparent-400 hover:bg-transparent-500 text-black transition-colors flex items-center justify-center shadow-lg"
+//                       aria-label="Previous image"
+//                     >
+//                       <ChevronLeft className="w-6 h-6" />
+//                     </button>
+//                     <button
+//                       onClick={handleNextImage}
+//                       className="w-12 h-12 rounded-full bg-transparent-400 hover:bg-transparent-500 text-black transition-colors flex items-center justify-center shadow-lg"
+//                       aria-label="Next image"
+//                     >
+//                       <ChevronRight className="w-6 h-6" />
+//                     </button>
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+
+//             {/* Right: Product Info */}
+//             <div className="flex flex-col gap-6 max-w-lg">
+//               <div>
+//                 <div className="text-orange-500 text-sm font-medium mb-2">Just in</div>
+//                 <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
+//                 {product.category && <p className="text-gray-600 mb-4">{product.category.name}</p>}
+//                 <p className="text-2xl font-semibold">SAR {product.price.toLocaleString()}.00</p>
+//               </div>
+
+//               {/* Size Selection */}
+//               {product.sizes.length > 0 && (
+//                 <div>
+//                   <div className="flex justify-between items-center mb-3">
+//                     <label className="text-lg font-semibold">Select Size</label>
+//                     <button className="text-sm text-gray-600 hover:text-black underline">Size Guide</button>
+//                   </div>
+//                   <div className="grid grid-cols-3 gap-2">
+//                     {product.sizes.map((option: { size: string; in_stock: boolean }, i: number) => (
+//                       <button
+//                         key={i}
+//                         onClick={() => setSelectedSize(option.size)}
+//                         disabled={!option.in_stock}
+//                         className={`px-4 py-3 rounded-lg border text-sm font-medium transition-colors ${
+//                           selectedSize === option.size
+//                             ? "bg-black text-white border-black"
+//                             : option.in_stock
+//                               ? "bg-white text-black border-gray-300 hover:border-black"
+//                               : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+//                         }`}
+//                       >
+//                         {option.size}
+//                       </button>
+//                     ))}
+//                   </div>
+//                 </div>
+//               )}
+
+//               {/* Add to Cart Button */}
+//               <Button
+//                 onClick={handleAddToCart}
+//                 disabled={!selectedSize || isAddingToCart}
+//                 size="lg"
+//                 className="w-full bg-black hover:bg-gray-800 text-white rounded-full py-4"
+//               >
+//                 {isAddingToCart ? "Adding..." : "Add to Bag"}
+//               </Button>
+
+//               {/* Product Description */}
+//               <div>
+//                 <h3 className="text-lg font-semibold mb-3">Description</h3>
+//                 <p className="text-gray-700 leading-relaxed">{product.description}</p>
+//               </div>
+
+//               {/* Delivery and Returns */}
+//               <div className="border-t pt-6">
+//                 <details className="group">
+//                   <summary className="flex justify-between items-center cursor-pointer py-4 text-lg font-semibold">
+//                     <div className="flex items-center gap-3">
+//                       <Truck className="w-5 h-5" />
+//                       <span>Free Delivery and Returns</span>
+//                     </div>
+//                     <svg
+//                       className="w-5 h-5 transition-transform group-open:rotate-180"
+//                       fill="none"
+//                       stroke="currentColor"
+//                       viewBox="0 0 24 24"
+//                     >
+//                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+//                     </svg>
+//                   </summary>
+//                   <div className="pb-4 text-gray-700 space-y-3">
+//                     <ul className="space-y-2 text-sm leading-relaxed">
+//                       <li className="flex items-start">
+//                         <RotateCcw className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+//                         <span>Free returns within 30 days, either online or to any of our Nike stores.</span>
+//                       </li>
+//                       <li className="flex items-start">
+//                         <Truck className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+//                         <span>
+//                           Free delivery on all orders for our members. Non-members will have free delivery on orders SAR
+//                           299 and above.
+//                         </span>
+//                       </li>
+//                       <li className="flex items-start">
+//                         <span className="mr-2">•</span>
+//                         <span>Order delivery is usually within 2-5 working days.</span>
+//                       </li>
+//                       <li className="flex items-start">
+//                         <span className="mr-2">•</span>
+//                         <span>Cash on Delivery not available on this product.</span>
+//                       </li>
+//                     </ul>
+//                   </div>
+//                 </details>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }
+
+
+
+
+
+//working best
+// "use client"
+
+// import { useState, useMemo } from "react"
+// import { useParams } from "next/navigation"
+// import Link from "next/link"
+// import { ArrowLeft, Heart, Truck, RotateCcw } from "lucide-react"
+// import { useCart } from "../../../../lib/CartContext"
+// import { CartDrawer } from "../../../../components/ui/cart-drawer"
+// import { Button } from "../../../../components/ui/button"
+// import { useApi } from "../../../../hooks/use-api"
+
+// type ProductDetail = {
+//   id: number
+//   title: string
+//   description: string
+//   price: number
+//   images: { url: string }[]
+//   sizes: { size: string; in_stock: boolean }[]
+//   category?: { name: string }
+// }
+
+// export default function ProductDetailPage() {
+//   const { slug } = useParams()
+//   const [selectedSize, setSelectedSize] = useState<string>("")
+//   const [mainImageIndex, setMainImageIndex] = useState(0)
+//   const [isFavorite, setIsFavorite] = useState(false)
+//   const [isAddingToCart, setIsAddingToCart] = useState(false)
+//   const { addItem } = useCart()
+
+//   const {
+//     data: productData,
+//     loading,
+//     error,
+//   } = useApi<any>(`https://elegant-duck-3bccb7b995.strapiapp.com/api/products?filters[slug][$eq]=${slug}&populate=*`)
+
+//   const product = useMemo(() => {
+//     if (!productData?.data?.[0]) return null
+
+//     const p = productData.data[0]
+//     return {
+//       id: p.id,
+//       title: p.attributes?.title || p.title,
+//       description: p.attributes?.Description || p.Description || "No description available.",
+//       price: p.attributes?.Price || p.Price,
+//       images: (p.attributes?.images?.data || p.images || []).map((img: any) => ({
+//         url: img.attributes?.url || img.url,
+//       })),
+//       sizes: p.attributes?.size || p.size || [],
+//       category: p.attributes?.category ? { name: p.attributes.category.name } : undefined,
+//     }
+//   }, [productData])
+
+//   const formatImageUrl = (url: string) => {
+//     return url.startsWith("http") ? url : `https://elegant-duck-3bccb7b995.strapiapp.com${url}`
+//   }
+
+//   const handleAddToCart = async () => {
+//     if (!product) return
+
+//     if (!selectedSize) {
+//       alert("Please select a shoe size.")
+//       return
+//     }
+
+//     const selectedSizeOption = product.sizes.find((s: { size: string; in_stock: boolean }) => s.size === selectedSize)
+//     if (!selectedSizeOption?.in_stock) {
+//       alert("This size is out of stock.")
+//       return
+//     }
+
+//     setIsAddingToCart(true)
+
+//     try {
+//       addItem({
+//         id: product.id,
+//         title: product.title,
+//         price: product.price,
+//         size: selectedSize,
+//         quantity: 1,
+//         image: product.images[mainImageIndex]?.url || "",
+//       })
+
+//       // Show success feedback
+      
+//       alert("Added to cart!")
+//     } catch (error) {
+//       alert("Failed to add to cart. Please try again.")
+//     } finally {
+//       setIsAddingToCart(false)
+//     }
+//   }
+
+//   // Add loading skeleton that matches the final layout structure
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen bg-white">
+//         <div className="fixed top-0 left-0 right-0 bg-white shadow-sm z-40 border-b">
+//           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+//             <div className="flex items-center gap-2">
+//               <div className="w-5 h-5 bg-gray-200 rounded animate-pulse" />
+//               <div className="w-32 h-5 bg-gray-200 rounded animate-pulse" />
+//             </div>
+//           </div>
+//         </div>
+//         <div className="pt-20 px-6">
+//           <div className="max-w-7xl mx-auto">
+//             <div className="flex flex-col lg:flex-row gap-12">
+//               <div className="flex flex-col md:flex-row gap-6">
+//                 <div className="flex md:flex-col gap-2">
+//                   {[1, 2, 3].map((i) => (
+//                     <div key={i} className="w-20 h-20 bg-gray-200 rounded animate-pulse" />
+//                   ))}
+//                 </div>
+//                 <div className="w-full max-w-[550px] h-[600px] bg-gray-200 rounded animate-pulse" />
+//               </div>
+//               <div className="flex flex-col gap-6 max-w-lg">
+//                 <div className="space-y-4">
+//                   <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse" />
+//                   <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
+//                   <div className="h-6 bg-gray-200 rounded w-1/3 animate-pulse" />
+//                 </div>
+//                 <div className="space-y-3">
+//                   <div className="h-5 bg-gray-200 rounded w-1/4 animate-pulse" />
+//                   <div className="grid grid-cols-3 gap-2">
+//                     {[1, 2, 3, 4, 5, 6].map((i) => (
+//                       <div key={i} className="h-12 bg-gray-200 rounded animate-pulse" />
+//                     ))}
+//                   </div>
+//                 </div>
+//                 <div className="h-12 bg-gray-200 rounded animate-pulse" />
+//                 <div className="space-y-3">
+//                   <div className="h-5 bg-gray-200 rounded w-1/3 animate-pulse" />
+//                   <div className="space-y-2">
+//                     <div className="h-4 bg-gray-200 rounded animate-pulse" />
+//                     <div className="h-4 bg-gray-200 rounded animate-pulse" />
+//                     <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
+//                   </div>
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     )
+//   }
+
+//   if (error || !product) {
+//     return (
+//       <div className="min-h-screen bg-white flex items-center justify-center">
+//         <div className="text-center">
+//           <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+//           <p className="text-gray-600 mb-6">The product you're looking for doesn't exist.</p>
+//           <Link href="/products">
+//             <Button>Back to Products</Button>
+//           </Link>
+//         </div>
+//       </div>
+//     )
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-white">
+//       <CartDrawer />
+
+//       {/* Header */}
+//       <div className="fixed top-0 left-0 right-0 bg-white shadow-sm z-40 border-b">
+//         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+//           <Link
+//             href="/products"
+//             className="flex items-center gap-2 text-gray-900 hover:text-gray-700 transition-colors"
+//           >
+//             <ArrowLeft className="w-5 h-5" />
+//             <span className="font-medium">Back to Products</span>
+//           </Link>
+//         </div>
+//       </div>
+
+//       <div className="pt-20 px-6">
+//         <div className="max-w-7xl mx-auto">
+//           <div className="flex flex-col lg:flex-row gap-12">
+//             {/* Left: Images */}
+//             <div className="flex flex-col md:flex-row gap-6">
+//               {/* Thumbnail Images */}
+//               <div className="flex md:flex-col gap-2 order-2 md:order-1">
+//                 {product.images.map((img: { url: string }, i: number) => (
+//                   <button
+//                     key={i}
+//                     onClick={() => setMainImageIndex(i)}
+//                     className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
+//                       mainImageIndex === i ? "border-black" : "border-transparent hover:border-gray-300"
+//                     }`}
+//                   >
+//                     <img
+//                       src={formatImageUrl(img.url) || "/file.svg"}
+//                       alt={`${product.title} ${i + 1}`}
+//                       className="w-full h-full object-cover"
+//                       loading="lazy"
+//                       onError={(e) => {
+//                         const target = e.target as HTMLImageElement
+//                         target.src = "/file.svg?height=80&width=80"
+//                       }}
+//                     />
+//                   </button>
+//                 ))}
+//               </div>
+
+//               {/* Main Image */}
+//               <div className="order-1 md:order-2">
+//                 {product.images[mainImageIndex] && (
+//                   <div className="relative">
+//                     <img
+//                       src={formatImageUrl(product.images[mainImageIndex].url) || "/file.svg"}
+//                       alt={product.title}
+//                       className="w-full max-w-[550px] h-[600px] object-cover rounded-lg"
+//                       loading="eager"
+//                       onError={(e) => {
+//                         const target = e.target as HTMLImageElement
+//                         target.src = "/file.svg?height=600&width=550"
+//                       }}
+//                     />
+//                     <button
+//                       onClick={() => setIsFavorite(!isFavorite)}
+//                       className={`absolute top-4 right-4 p-3 rounded-full transition-colors ${
+//                         isFavorite ? "bg-red-100 text-red-500" : "bg-white text-gray-600 hover:text-red-500"
+//                       }`}
+//                     >
+//                       <Heart className={`w-6 h-6 ${isFavorite ? "fill-current" : ""}`} />
+//                     </button>
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+
+//             {/* Right: Product Info */}
+//             <div className="flex flex-col gap-6 max-w-lg">
+//               <div>
+//                 <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
+//                 {product.category && <p className="text-gray-600 mb-4">{product.category.name}</p>}
+//                 <p className="text-2xl font-semibold">SAR {product.price.toLocaleString()}.00</p>
+//               </div>
+
+//               {/* Size Selection */}
+//               {product.sizes.length > 0 && (
+//                 <div>
+//                   <div className="flex justify-between items-center mb-3">
+//                     <label className="text-lg font-semibold">Select Size</label>
+//                     <button className="text-sm text-gray-600 hover:text-black underline">Size Guide</button>
+//                   </div>
+//                   <div className="grid grid-cols-3 gap-2">
+//                     {product.sizes.map((option: { size: string; in_stock: boolean }, i: number) => (
+//                       <button
+//                         key={i}
+//                         onClick={() => setSelectedSize(option.size)}
+//                         disabled={!option.in_stock}
+//                         className={`px-4 py-3 rounded-lg border text-sm font-medium transition-colors ${
+//                           selectedSize === option.size
+//                             ? "bg-black text-white border-black"
+//                             : option.in_stock
+//                               ? "bg-white text-black border-gray-300 hover:border-black"
+//                               : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+//                         }`}
+//                       >
+//                         {option.size}
+//                       </button>
+//                     ))}
+//                   </div>
+//                 </div>
+//               )}
+
+//               {/* Add to Cart Button */}
+//               <Button onClick={handleAddToCart} disabled={!selectedSize || isAddingToCart} size="lg" className="w-full">
+//                 {isAddingToCart ? "Adding..." : "Add to Bag"}
+//               </Button>
+
+//               {/* Product Description */}
+//               <div>
+//                 <h3 className="text-lg font-semibold mb-3">Description</h3>
+//                 <p className="text-gray-700 leading-relaxed">{product.description}</p>
+//               </div>
+
+//               {/* Delivery and Returns */}
+//               <div className="border-t pt-6">
+//                 <details className="group">
+//                   <summary className="flex justify-between items-center cursor-pointer py-4 text-lg font-semibold">
+//                     <div className="flex items-center gap-3">
+//                       <Truck className="w-5 h-5" />
+//                       <span>Free Delivery and Returns</span>
+//                     </div>
+//                     <svg
+//                       className="w-5 h-5 transition-transform group-open:rotate-180"
+//                       fill="none"
+//                       stroke="currentColor"
+//                       viewBox="0 0 24 24"
+//                     >
+//                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+//                     </svg>
+//                   </summary>
+//                   <div className="pb-4 text-gray-700 space-y-3">
+//                     <ul className="space-y-2 text-sm leading-relaxed">
+//                       <li className="flex items-start">
+//                         <RotateCcw className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+//                         <span>Free returns within 30 days, either online or to any of our Nike stores.</span>
+//                       </li>
+//                       <li className="flex items-start">
+//                         <Truck className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+//                         <span>
+//                           Free delivery on all orders for our members. Non-members will have free delivery on orders SAR
+//                           299 and above.
+//                         </span>
+//                       </li>
+//                       <li className="flex items-start">
+//                         <span className="mr-2">•</span>
+//                         <span>Order delivery is usually within 2-5 working days.</span>
+//                       </li>
+//                       <li className="flex items-start">
+//                         <span className="mr-2">•</span>
+//                         <span>Cash on Delivery not available on this product.</span>
+//                       </li>
+//                     </ul>
+//                   </div>
+//                 </details>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }

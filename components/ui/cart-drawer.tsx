@@ -70,7 +70,7 @@ export function CartDrawer() {
                   <div key={`${item.id}-${item.size}`} className="flex gap-3 border-b pb-4">
                     <div className="relative w-16 h-16">
                       <Image
-                        src={formatImageUrl(item.image) || "/placeholder.svg"}
+                        src={formatImageUrl(item.image) || "/file.svg"}
                         alt={item.title}
                         fill
                         className="object-cover rounded"

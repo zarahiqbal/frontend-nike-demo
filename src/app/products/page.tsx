@@ -248,8 +248,7 @@
 //   )
 // }
 
-
-
+//latest this and below one
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -258,37 +257,39 @@ import Link from "next/link"
 import Image from "next/image"
 import { Heart } from "lucide-react"
 import { CartDrawer } from "../../../components/ui/cart-drawer"
-import { ProductCardSkeleton, CategorySkeleton } from "../../../components/ui/loading-skeleton"
+import { ProductCardSkeleton } from "../../../components/ui/loading-skeleton"
 import { useApi } from "../../../hooks/use-api"
 
-type Product = {
-  id: number
-  title: string
-  price: number
-  slug: string
-  category: string
-  images: { url: string }[]
-  colors?: number
-  badge?: "Just In" | "Bestseller"
-}
+// type Product = {
+//   id: number
+//   title: string
+//   price: number
+//   slug: string
+//   category: string
+//   images: { url: string }[]
+//   colors?: number
+//   badge?: "Just In" | "Bestseller"
+// }
 
 type ApiResponse = {
   data: Record<string, unknown>[]
 }
 
 export default function ProductsPage() {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [favorites, setFavorites] = useState<Set<number>>(new Set())
   const searchParams = useSearchParams()
+  const selectedCategory = searchParams.get("category")?.toLowerCase() || "all"
 
   const { data: productsData, loading } = useApi<ApiResponse>(
-    "https://elegant-duck-3bccb7b995.strapiapp.com/api/products?populate=*",
+    selectedCategory && selectedCategory !== "all"
+      ? `https://elegant-duck-3bccb7b995.strapiapp.com/api/products?filters[categories][slug][$eq]=${selectedCategory}&populate=*`
+      : "https://elegant-duck-3bccb7b995.strapiapp.com/api/products?populate=*"
   )
 
-  const { products, categories } = useMemo(() => {
+  const products = useMemo(() => {
     const rawProducts = productsData?.data || []
 
-    const mapped = rawProducts.map((p: Record<string, unknown>, index: number) => ({
+    return rawProducts.map((p: Record<string, unknown>, index: number) => ({
       id: Number(p.id),
       title: String((p.attributes as Record<string, unknown>)?.title || p.title || `Nike Product ${index + 1}`),
       price: Number(
@@ -312,7 +313,7 @@ export default function ProductsPage() {
             (img.attributes as Record<string, unknown>)?.url ||
             (img.formats as Record<string, Record<string, unknown>>)?.medium?.url ||
             img.url ||
-            "/placeholder.svg?height=400&width=400",
+            "/file.svg?height=400&width=400",
         ),
       })),
       colors: Number(
@@ -320,34 +321,7 @@ export default function ProductsPage() {
       ),
       badge: index === 1 ? ("Just In" as const) : index === 2 ? ("Bestseller" as const) : undefined,
     }))
-
-    // Extract unique categories (excluding "Trending")
-    const uniqueCategories: string[] = Array.from(
-      new Set(
-        mapped.map((product: Product) => product.category.toLowerCase()).filter((cat: string) => cat !== "trending"),
-      ),
-    )
-
-    return {
-      products: mapped,
-      categories: ["all", ...uniqueCategories],
-    }
   }, [productsData])
-
-  useEffect(() => {
-    const categoryParam = searchParams.get("category")
-    if (categoryParam && categories.includes(categoryParam.toLowerCase())) {
-      setSelectedCategory(categoryParam.toLowerCase())
-    } else {
-      setSelectedCategory("all")
-    }
-  }, [searchParams, categories])
-
-  const filteredProducts = useMemo(() => {
-    return selectedCategory === "all"
-      ? products
-      : products.filter((p) => p.category.toLowerCase() === selectedCategory.toLowerCase())
-  }, [products, selectedCategory])
 
   const toggleFavorite = (productId: number) => {
     setFavorites((prev) => {
@@ -369,7 +343,6 @@ export default function ProductsPage() {
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4">
         <div className="max-w-7xl mx-auto pt-20">
-          <CategorySkeleton />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <ProductCardSkeleton key={i} />
@@ -385,58 +358,24 @@ export default function ProductsPage() {
       <CartDrawer />
 
       {/* Header */}
-      <div className="fixed top-0 left-0 right-0 bg-white shadow-sm z-40 border-b">
+      {/* <div className="fixed top-0 left-0 right-0 bg-white shadow-sm z-40 border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold text-gray-900 hover:text-gray-700 transition-colors">
             Nike Store
           </Link>
         </div>
-      </div>
+      </div> */}
 
       <div className="max-w-7xl mx-auto pt-20">
-        {/* Category Filter */}
-        <div className="mb-8">
-          <div className="flex flex-wrap gap-3">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
-                  selectedCategory === category
-                    ? "bg-black text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                }`}
-              >
-                {category === "all" ? "All Products" : category.charAt(0).toUpperCase() + category.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          {/* Results count */}
-          <div className="mt-4 text-gray-600">
-            {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"} found
-            {selectedCategory !== "all" && (
-              <span className="ml-1">
-                in &ldquo;{selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}&rdquo;
-              </span>
-            )}
-          </div>
-        </div>
-
+        
         {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredProducts.length === 0 ? (
+          {products.length === 0 ? (
             <div className="col-span-full text-center text-gray-500 py-12">
-              <p className="text-lg">No products found in this category.</p>
-              <button
-                onClick={() => setSelectedCategory("all")}
-                className="mt-4 px-6 py-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors"
-              >
-                View All Products
-              </button>
+              <p className="text-lg">No products found.</p>
             </div>
           ) : (
-            filteredProducts.map((product) => {
+            products.map((product) => {
               const image = product.images[0]?.url
               const isFavorite = favorites.has(product.id)
 
@@ -472,13 +411,13 @@ export default function ProductsPage() {
                       <Link href={`/products/${product.slug}`}>
                         <div className="w-full h-full flex items-center justify-center p-8 cursor-pointer relative">
                           <Image
-                            src={formatImageUrl(image || "/placeholder.svg?height=400&width=400")}
+                            src={formatImageUrl(image || "/file.svg?height=400&width=400")}
                             alt={product.title}
                             fill
                             className="object-contain group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement
-                              target.src = "/placeholder.svg?height=400&width=400"
+                              target.src = "/file.svg?height=400&width=400"
                             }}
                           />
                         </div>
@@ -490,9 +429,6 @@ export default function ProductsPage() {
                       <div className="p-6 cursor-pointer">
                         <h3 className="text-lg font-medium text-gray-900 mb-1">{product.title}</h3>
                         <p className="text-gray-600 mb-2">{product.category}</p>
-                        <p className="text-gray-600 mb-4">
-                          {product.colors} {product.colors === 1 ? "Colour" : "Colours"}
-                        </p>
                         <p className="text-lg font-medium text-gray-900">SAR {product.price.toLocaleString()}.00</p>
                       </div>
                     </Link>
@@ -506,3 +442,429 @@ export default function ProductsPage() {
     </div>
   )
 }
+// "use client"
+
+// import { useEffect, useState, useMemo } from "react"
+// import { useSearchParams } from "next/navigation"
+// import Link from "next/link"
+// import Image from "next/image"
+// import { Heart } from "lucide-react"
+// import { CartDrawer } from "../../../components/ui/cart-drawer"
+// import { ProductCardSkeleton } from "../../../components/ui/loading-skeleton"
+// import { useApi } from "../../../hooks/use-api"
+
+// type Product = {
+//   id: number
+//   title: string
+//   price: number
+//   slug: string
+//   category: string
+//   images: { url: string }[]
+//   colors?: number
+//   badge?: "Just In" | "Bestseller"
+// }
+
+// type ApiResponse = {
+//   data: Record<string, unknown>[]
+// }
+
+// export default function ProductsPage() {
+//   const [favorites, setFavorites] = useState<Set<number>>(new Set())
+//   const searchParams = useSearchParams()
+
+//   const selectedCategory = searchParams.get("category")?.toLowerCase()
+
+//   const { data: productsData, loading } = useApi<ApiResponse>(
+//     selectedCategory && selectedCategory !== "all"
+//       ? `https://elegant-duck-3bccb7b995.strapiapp.com/api/products?filters[categories][name][$eq]=${selectedCategory}&populate=*`
+//       : "https://elegant-duck-3bccb7b995.strapiapp.com/api/products?populate=*"
+//   )
+
+//   const products = useMemo(() => {
+//   const rawProducts = productsData?.data || []
+
+//   const mappedProducts = rawProducts.map((p: Record<string, unknown>, index: number): Product => {
+//     const attrs = p.attributes as any
+
+//     const category = Array.isArray((p as any).categories)
+//       ? (p as any).categories.map((cat: any) => cat.name?.toLowerCase()).join(", ")
+//       : "uncategorized"
+
+//     console.log("Categories from Strapi:", category)
+
+//     return {
+//       id: Number(p.id),
+//       title: String(attrs?.name || `Nike Product ${index + 1}`),
+//       price: Number(attrs?.Price || Math.floor(Math.random() * 1000) + 500),
+//       slug: String(attrs?.slug || `product-${p.id}`),
+//       category, // <- use the variable here
+//       images: (attrs?.images?.data || []).map((img: any) => ({
+//         url:
+//           img?.attributes?.formats?.medium?.url ||
+//           img?.attributes?.url ||
+//           "/file.svg?height=400&width=400",
+//       })),
+//       colors: Number(attrs?.colors || Math.floor(Math.random() * 7) + 1),
+//       badge: index === 1 ? "Just In" : index === 2 ? "Bestseller" : undefined,
+//     }
+//   })
+
+//   return mappedProducts
+// }, [productsData])
+
+//   const toggleFavorite = (productId: number) => {
+//     setFavorites((prev) => {
+//       const newFavorites = new Set(prev)
+//       newFavorites.has(productId) ? newFavorites.delete(productId) : newFavorites.add(productId)
+//       return newFavorites
+//     })
+//   }
+
+//   const formatImageUrl = (url: string) =>
+//     url.startsWith("http") ? url : `https://elegant-duck-3bccb7b995.strapiapp.com${url}`
+
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen bg-gray-50 py-8 px-4">
+//         <div className="max-w-7xl mx-auto pt-20">
+//           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+//             {[1, 2, 3, 4, 5, 6].map((i) => (
+//               <ProductCardSkeleton key={i} />
+//             ))}
+//           </div>
+//         </div>
+//       </div>
+//     )
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gray-50 py-8 px-4">
+//       <CartDrawer />
+//       <div className="max-w-7xl mx-auto pt-20">
+//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+//           {products.length === 0 ? (
+//             <div className="col-span-full text-center text-gray-500 py-12">
+//               <p className="text-lg">No products found.</p>
+//             </div>
+//           ) : (
+//             products.map((product) => {
+//               const image = product.images[0]?.url
+//               const isFavorite = favorites.has(product.id)
+
+//               return (
+//                 <div key={product.id} className="group block">
+//                   <div className="bg-white rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
+//                     <div className="relative bg-gray-100 aspect-square">
+//                       <button
+//                         className={`absolute top-4 right-4 z-10 p-2 rounded-full transition-colors ${
+//                           isFavorite ? "bg-red-100 text-red-500" : "hover:bg-white text-gray-600 hover:text-red-500"
+//                         }`}
+//                         onClick={(e) => {
+//                           e.preventDefault()
+//                           e.stopPropagation()
+//                           toggleFavorite(product.id)
+//                         }}
+//                       >
+//                         <Heart className={`w-6 h-6 transition-colors ${isFavorite ? "fill-current" : ""}`} />
+//                       </button>
+
+//                       {product.badge && (
+//                         <div className="absolute top-4 left-4 z-10">
+//                           <span className="px-2 py-1 text-xs font-medium rounded bg-orange-500 text-white">
+//                             {product.badge}
+//                           </span>
+//                         </div>
+//                       )}
+
+//                       <Link href={`/products/${product.slug}`}>
+//                         <div className="w-full h-full flex items-center justify-center p-8 cursor-pointer relative">
+//                           <Image
+//                             src={formatImageUrl(image || "/file.svg?height=400&width=400")}
+//                             alt={product.title}
+//                             fill
+//                             className="object-contain group-hover:scale-105 transition-transform duration-300"
+//                             onError={(e) => {
+//                               const target = e.target as HTMLImageElement
+//                               target.src = "/file.svg?height=400&width=400"
+//                             }}
+//                           />
+//                         </div>
+//                       </Link>
+//                     </div>
+
+//                     <Link href={`/products/${product.slug}`}>
+//                       <div className="p-6 cursor-pointer">
+//                         <h3 className="text-lg font-medium text-gray-900 mb-1">{product.title}</h3>
+//                         <p className="text-gray-600 mb-2 capitalize">{product.category}</p>
+//                         <p className="text-lg font-medium text-gray-900">
+//                           SAR {product.price.toLocaleString()}.00
+//                         </p>
+//                       </div>
+//                     </Link>
+//                   </div>
+//                 </div>
+//               )
+//             })
+//           )}
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }
+
+// "use client"
+
+// import { useEffect, useState, useMemo } from "react"
+// import { useSearchParams } from "next/navigation"
+// import Link from "next/link"
+// import Image from "next/image"
+// import { Heart } from "lucide-react"
+// import { CartDrawer } from "../../../components/ui/cart-drawer"
+// import { ProductCardSkeleton, CategorySkeleton } from "../../../components/ui/loading-skeleton"
+// import { useApi } from "../../../hooks/use-api"
+
+// type Product = {
+//   id: number
+//   title: string
+//   price: number
+//   slug: string
+//   category: string
+//   images: { url: string }[]
+//   colors?: number
+//   badge?: "Just In" | "Bestseller"
+// }
+
+// type ApiResponse = {
+//   data: Record<string, unknown>[]
+// }
+
+// export default function ProductsPage() {
+//   const [selectedCategory, setSelectedCategory] = useState<string>("all")
+//   const [favorites, setFavorites] = useState<Set<number>>(new Set())
+//   const searchParams = useSearchParams()
+
+//   const { data: productsData, loading } = useApi<ApiResponse>(
+//     "https://elegant-duck-3bccb7b995.strapiapp.com/api/products?populate=*",
+//   )
+
+//   const { products, categories } = useMemo(() => {
+//     const rawProducts = productsData?.data || []
+
+//     const mapped = rawProducts.map((p: Record<string, unknown>, index: number) => ({
+//       id: Number(p.id),
+//       title: String((p.attributes as Record<string, unknown>)?.title || p.title || `Nike Product ${index + 1}`),
+//       price: Number(
+//         (p.attributes as Record<string, unknown>)?.Price || p.Price || Math.floor(Math.random() * 1000) + 500,
+//       ),
+//       slug: String((p.attributes as Record<string, unknown>)?.slug || p.slug || `product-${p.id}`),
+//       category: String(
+//         ((p.attributes as Record<string, unknown>)?.categories as Record<string, Record<string, unknown>[]>)?.data?.[0]
+//           ?.attributes?.name ||
+//           (p.categories as Array<Record<string, unknown>>)?.[0]?.name ||
+//           "Men's Road Running Shoes",
+//       ),
+//       images: (
+//         ((p.attributes as Record<string, unknown>)?.images as Record<string, Record<string, unknown>[]>)?.data ||
+//         p.images ||
+//         []
+//       ).map((img: Record<string, unknown>) => ({
+//         url: String(
+//           ((img.attributes as Record<string, unknown>)?.formats as Record<string, Record<string, unknown>>)?.medium
+//             ?.url ||
+//             (img.attributes as Record<string, unknown>)?.url ||
+//             (img.formats as Record<string, Record<string, unknown>>)?.medium?.url ||
+//             img.url ||
+//             "/file.svg?height=400&width=400",
+//         ),
+//       })),
+//       colors: Number(
+//         (p.attributes as Record<string, unknown>)?.colors || p.colors || Math.floor(Math.random() * 7) + 1,
+//       ),
+//       badge: index === 1 ? ("Just In" as const) : index === 2 ? ("Bestseller" as const) : undefined,
+//     }))
+
+//     // Extract unique categories (excluding "Trending")
+//     const uniqueCategories: string[] = Array.from(
+//       new Set(
+//         mapped.map((product: Product) => product.category.toLowerCase()).filter((cat: string) => cat !== "trending"),
+//       ),
+//     )
+
+//     return {
+//       products: mapped,
+//       categories: ["all", ...uniqueCategories],
+//     }
+//   }, [productsData])
+
+//   useEffect(() => {
+//     const categoryParam = searchParams.get("category")
+//     if (categoryParam && categories.includes(categoryParam.toLowerCase())) {
+//       setSelectedCategory(categoryParam.toLowerCase())
+//     } else {
+//       setSelectedCategory("all")
+//     }
+//   }, [searchParams, categories])
+
+//   const filteredProducts = useMemo(() => {
+//     return selectedCategory === "all"
+//       ? products
+//       : products.filter((p) => p.category.toLowerCase() === selectedCategory.toLowerCase())
+//   }, [products, selectedCategory])
+
+//   const toggleFavorite = (productId: number) => {
+//     setFavorites((prev) => {
+//       const newFavorites = new Set(prev)
+//       if (newFavorites.has(productId)) {
+//         newFavorites.delete(productId)
+//       } else {
+//         newFavorites.add(productId)
+//       }
+//       return newFavorites
+//     })
+//   }
+
+//   const formatImageUrl = (url: string) => {
+//     return url.startsWith("http") ? url : `https://elegant-duck-3bccb7b995.strapiapp.com${url}`
+//   }
+
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen bg-gray-50 py-8 px-4">
+//         <div className="max-w-7xl mx-auto pt-20">
+//           <CategorySkeleton />
+//           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+//             {[1, 2, 3, 4, 5, 6].map((i) => (
+//               <ProductCardSkeleton key={i} />
+//             ))}
+//           </div>
+//         </div>
+//       </div>
+//     )
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gray-50 py-8 px-4">
+//       <CartDrawer />
+
+//       {/* Header */}
+//       <div className="fixed top-0 left-0 right-0 bg-white shadow-sm z-40 border-b">
+//         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+//           <Link href="/" className="text-2xl font-bold text-gray-900 hover:text-gray-700 transition-colors">
+//             Nike Store
+//           </Link>
+//         </div>
+//       </div>
+
+//       <div className="max-w-7xl mx-auto pt-20">
+//         {/* Category Filter */}
+//         {/* <div className="mb-8">
+//           <div className="flex flex-wrap gap-3">
+//             {categories.map((category) => (
+//               <button
+//                 key={category}
+//                 onClick={() => setSelectedCategory(category)}
+//                 className={`px-6 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
+//                   selectedCategory === category
+//                     ? "bg-black text-white"
+//                     : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+//                 }`}
+//               >
+//                 {category === "all" ? "All Products" : category.charAt(0).toUpperCase() + category.slice(1)}
+//               </button>
+//             ))}
+//           </div>
+
+//           {/* Results count */}
+//           <div className="mt-4 text-gray-600">
+//             {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"} found
+//             {selectedCategory !== "all" && (
+//               <span className="ml-1">
+//                 in &ldquo;{selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}&rdquo;
+//               </span>
+//             )}
+//           </div>
+//         </div> 
+
+//         {/* Products Grid */}
+//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+//           {filteredProducts.length === 0 ? (
+//             <div className="col-span-full text-center text-gray-500 py-12">
+//               <p className="text-lg">No products found in this category.</p>
+//               <button
+//                 onClick={() => setSelectedCategory("all")}
+//                 className="mt-4 px-6 py-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors"
+//               >
+//                 View All Products
+//               </button>
+//             </div>
+//           ) : (
+//             filteredProducts.map((product) => {
+//               const image = product.images[0]?.url
+//               const isFavorite = favorites.has(product.id)
+
+//               return (
+//                 <div key={product.id} className="group block">
+//                   <div className="bg-white rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
+//                     {/* Product Image Container */}
+//                     <div className="relative bg-gray-100 aspect-square">
+//                       {/* Heart Icon */}
+//                       <button
+//                         className={`absolute top-4 right-4 z-10 p-2 rounded-full transition-colors ${
+//                           isFavorite ? "bg-red-100 text-red-500" : "hover:bg-white text-gray-600 hover:text-red-500"
+//                         }`}
+//                         onClick={(e) => {
+//                           e.preventDefault()
+//                           e.stopPropagation()
+//                           toggleFavorite(product.id)
+//                         }}
+//                       >
+//                         <Heart className={`w-6 h-6 transition-colors ${isFavorite ? "fill-current" : ""}`} />
+//                       </button>
+
+//                       {/* Badge */}
+//                       {product.badge && (
+//                         <div className="absolute top-4 left-4 z-10">
+//                           <span className="px-2 py-1 text-xs font-medium rounded bg-orange-500 text-white">
+//                             {product.badge}
+//                           </span>
+//                         </div>
+//                       )}
+
+//                       {/* Product Image */}
+//                       <Link href={`/products/${product.slug}`}>
+//                         <div className="w-full h-full flex items-center justify-center p-8 cursor-pointer relative">
+//                           <Image
+//                             src={formatImageUrl(image || "/file.svg?height=400&width=400")}
+//                             alt={product.title}
+//                             fill
+//                             className="object-contain group-hover:scale-105 transition-transform duration-300"
+//                             onError={(e) => {
+//                               const target = e.target as HTMLImageElement
+//                               target.src = "/file.svg?height=400&width=400"
+//                             }}
+//                           />
+//                         </div>
+//                       </Link>
+//                     </div>
+
+//                     {/* Product Info */}
+//                     <Link href={`/products/${product.slug}`}>
+//                       <div className="p-6 cursor-pointer">
+//                         <h3 className="text-lg font-medium text-gray-900 mb-1">{product.title}</h3>
+//                         <p className="text-gray-600 mb-2">{product.category}</p>
+//                         <p className="text-gray-600 mb-4">
+//                           {/* {product.colors} {product.colors === 1 ? "Colour" : "Colours"} */}
+//                         </p>
+//                         <p className="text-lg font-medium text-gray-900">SAR {product.price.toLocaleString()}.00</p>
+//                       </div>
+//                     </Link>
+//                   </div>
+//                 </div>
+//               )
+//             })
+//           )}
+//         </div>
+//       </div>
+//     //</div>
+//   )
+// }

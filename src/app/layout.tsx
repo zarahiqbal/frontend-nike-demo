@@ -1,8 +1,38 @@
+// import type React from "react"
+// import type { Metadata } from "next"
+// import { Inter } from "next/font/google"
+// import "./globals.css"
+// import { CartProvider } from "../../lib/CartContext"
+
+// const inter = Inter({ subsets: ["latin"] })
+
+// export const metadata: Metadata = {
+//   title: "Nike Store",
+//   description: "Premium Nike footwear and apparel",
+// }
+
+// export default function RootLayout({
+//   children,
+// }: {
+//   children: React.ReactNode
+// }) {
+//   return (
+//     <html lang="en">
+//       <body className={inter.className}>
+//         <CartProvider>{children}</CartProvider>
+//       </body>
+//     </html>
+//   )
+// }
+
+
+
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { CartProvider } from "../../lib/CartContext"
+import Navbar from "../../components/navbar"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -19,14 +49,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <CartProvider>{children}</CartProvider>
+        <CartProvider>
+          <Navbar />
+          <main className="pt-0">{children}</main>
+        </CartProvider>
       </body>
     </html>
   )
 }
-
-
-
 
 
 

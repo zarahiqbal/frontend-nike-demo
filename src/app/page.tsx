@@ -1,356 +1,154 @@
+
+
 "use client"
-import { useMemo } from "react"
+
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "../../components/ui/button"
-import { CartDrawer } from "../../components/ui/cart-drawer"
-import { ProductCardSkeleton } from "../../components/ui/loading-skeleton"
 import { useApi } from "../../hooks/use-api"
-
-
-type Product = {
-  id: number
-  title: string
-  price: number
-  slug: string
-  category: string
-  images: { url: string }[]
-  colors?: number
-  badge?: "Just In" | "Bestseller"
-}
-
-type CategoryAttributes = {
-  name: string
-  slug: string
-  image?: {
-    data?: {
-      attributes?: {
-        url: string
-      }
-    }
-  }
-}
-
-type Category = {
-  id: number
-  attributes?: CategoryAttributes
-  name?: string
-  slug?: string
-  image?: { url: string }
-}
+import { useSearchParams } from "next/navigation"
+import { CartDrawer } from "../../components/ui/cart-drawer"
 
 type ApiResponse = {
-  data: Record<string, unknown>[]
+  data: Record<string, any>[]
 }
 
 export default function HomePage() {
-  const { data: productsData, loading: productsLoading } = useApi<ApiResponse>(
-    "https://elegant-duck-3bccb7b995.strapiapp.com/api/products?populate=*",
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const searchParams = useSearchParams()
+  const selectedCategory = searchParams.get("category")?.toLowerCase() || "all"
+
+  const { data: productsData, loading } = useApi<ApiResponse>(
+    selectedCategory && selectedCategory !== "all"
+      ? `https://elegant-duck-3bccb7b995.strapiapp.com/api/products?filters[categories][slug][$eq]=${selectedCategory}&populate=*`
+      : "https://elegant-duck-3bccb7b995.strapiapp.com/api/products?populate=*"
   )
 
-  const { data: categoriesData, loading: categoriesLoading } = useApi<ApiResponse>(
-    "https://elegant-duck-3bccb7b995.strapiapp.com/api/categories?populate=*",
+  const { data: categoriesData } = useApi<ApiResponse>(
+    "https://elegant-duck-3bccb7b995.strapiapp.com/api/categories?populate=*"
   )
 
-  const { trendingProducts, featuredImage, heroImage, categories } = useMemo(() => {
-    const rawProducts = productsData?.data || []
-    const rawCategories = categoriesData?.data || []
-
-    // Process trending products
-    const trendingRawProducts = rawProducts.filter((p: Record<string, unknown>) => {
-      const product = p
-      const attributes = product.attributes as Record<string, unknown> | undefined
-      const categoriesField = attributes?.categories || product.categories
-
-      let productCategories: Record<string, unknown>[] = []
-
-      if (categoriesField && typeof categoriesField === "object") {
-        if ("data" in categoriesField && Array.isArray((categoriesField as Record<string, unknown>).data)) {
-          productCategories = (categoriesField as Record<string, Record<string, unknown>[]>).data
-        } else if (Array.isArray(categoriesField)) {
-          productCategories = categoriesField as Record<string, unknown>[]
-        }
-      }
-
-      return productCategories.some((cat: Record<string, unknown>) => {
-        const category = cat
-        const categoryAttributes = category.attributes as Record<string, unknown> | undefined
-        const categoryName = categoryAttributes?.name || category.name || ""
-        return String(categoryName).toLowerCase() === "trending"
-      })
-    })
-
-    const trending = trendingRawProducts
-      .map((p: Record<string, unknown>, index: number) => {
-        const product = p
-        const attributes = product.attributes as Record<string, unknown> | undefined
-
-        // Safely extract images
-        const imagesField = attributes?.images || product.images
-        let imagesList: Record<string, unknown>[] = []
-
-        if (imagesField && typeof imagesField === "object") {
-          if ("data" in imagesField && Array.isArray((imagesField as Record<string, unknown>).data)) {
-            imagesList = (imagesField as Record<string, Record<string, unknown>[]>).data
-          } else if (Array.isArray(imagesField)) {
-            imagesList = imagesField as Record<string, unknown>[]
-          }
-        }
-
-        const processedImages = imagesList.map((img: Record<string, unknown>) => {
-          const image = img
-          const imageAttributes = image.attributes as Record<string, unknown> | undefined
-
-          // Safely extract image URL
-          let imageUrl = "/placeholder.svg?height=400&width=400"
-
-          if (imageAttributes?.formats && typeof imageAttributes.formats === "object") {
-            const formats = imageAttributes.formats as Record<string, unknown>
-            if (formats.medium && typeof formats.medium === "object") {
-              const medium = formats.medium as Record<string, unknown>
-              imageUrl = String(medium.url || imageUrl)
-            }
-          }
-
-          if (imageUrl === "/placeholder.svg?height=400&width=400") {
-            imageUrl = String(imageAttributes?.url || image.url || imageUrl)
-          }
-
-          return { url: imageUrl }
-        })
-
-        // Safely extract category
-        const categoriesField = attributes?.categories || product.categories
-        let categoryName = "Men's Road Running Shoes"
-
-        if (categoriesField && typeof categoriesField === "object") {
-          let firstCategory: Record<string, unknown> | null = null
-
-          if ("data" in categoriesField && Array.isArray((categoriesField as Record<string, unknown>).data)) {
-            const dataArray = (categoriesField as Record<string, Record<string, unknown>[]>).data
-            firstCategory = dataArray[0] || null
-          } else if (Array.isArray(categoriesField)) {
-            const categoryArray = categoriesField as Record<string, unknown>[]
-            firstCategory = categoryArray[0] || null
-          }
-
-          if (firstCategory) {
-            const category = firstCategory
-            const categoryAttributes = category.attributes as Record<string, unknown> | undefined
-            categoryName = String(categoryAttributes?.name || category.name || categoryName)
-          }
-        }
-
-        return {
-          id: Number(product.id),
-          title: String(attributes?.title || product.title || `Nike Product ${index + 1}`),
-          price: Number(attributes?.Price || product.Price || Math.floor(Math.random() * 1000) + 500),
-          slug: String(attributes?.slug || product.slug || `product-${product.id}`),
-          category: categoryName,
-          images: processedImages,
-          colors: Number(attributes?.colors || product.colors || Math.floor(Math.random() * 7) + 1),
-          badge: index === 1 ? ("Just In" as const) : index === 2 ? ("Bestseller" as const) : undefined,
-        }
-      })
-      .slice(0, 6)
-
-    // Find special category images
-    const nikemenCategory = rawCategories.find((cat: Record<string, unknown>) => {
-      const category = cat as Category
-      const categoryName = category.attributes?.name || category.name || ""
-      return String(categoryName).toLowerCase() === "nikemen"
-    }) as Category | undefined
-
-    const mainCategory = rawCategories.find((cat: Record<string, unknown>) => {
-      const category = cat as Category
-      const categoryName = category.attributes?.name || category.name || ""
-      return String(categoryName).toLowerCase() === "main"
-    }) as Category | undefined
-
-    const featuredImg =
-      nikemenCategory?.attributes?.image?.data?.attributes?.url ||
-      nikemenCategory?.image?.url ||
-      "/placeholder.svg?height=400&width=600"
-
-    const heroImg =
-      mainCategory?.attributes?.image?.data?.attributes?.url ||
-      mainCategory?.image?.url ||
-      "/placeholder.svg?height=600&width=1200"
-
-    // Filter categories for display
-    const filteredCategories = rawCategories
-      .filter((cat: Record<string, unknown>) => {
-        const category = cat as Category
-        const categoryName = category.attributes?.name || category.name || ""
-        return !["trending", "nikemen", "main"].includes(String(categoryName).toLowerCase())
-      })
-      .slice(0, 3) as Category[]
-
-    return {
-      trendingProducts: trending,
-      featuredImage: featuredImg,
-      heroImage: heroImg,
-      categories: filteredCategories,
-    }
-  }, [productsData, categoriesData])
-
-  const formatImageUrl = (url: string) => {
-    return url.startsWith("http") ? url : `https://elegant-duck-3bccb7b995.strapiapp.com${url}`
-  }
+  const shopCategories = [
+    { name: "Men", slug: "men", image: "/images/men.webp" },
+    { name: "Women", slug: "women", image: "/images/women.webp" },
+    { name: "Kids", slug: "kids", image: "/images/kids.jpg" },
+  ]
 
   return (
+    
     <div className="min-h-screen bg-white">
-      <CartDrawer />
-
+      <CartDrawer/>
       {/* Hero Section */}
-      <section className="relative">
-        <div className="relative h-[600px] bg-gray-100">
-          <Image
-            src={formatImageUrl(heroImage) || "/placeholder.svg"}
-            alt="Nike Air Max"
-            fill
-            className="object-cover"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement
-              target.src = "/placeholder.svg?height=600&width=1200"
-            }}
-          />
-          <div className="absolute inset-0 bg-black/20" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center text-white">
-              <h1 className="text-6xl font-bold mb-4">JUST DO IT</h1>
-              <p className="text-xl mb-8">Nike Air Max 270</p>
-              <Link href="/products">
-                <Button size="lg" className="bg-white text-black hover:bg-gray-100">
-                  Shop Now
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <section className="relative w-full h-screen">
+        <video className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop>
+          <source src="/images/sample.mp4" type="video/mp4" />
+        </video>
 
-      {/* Featured Products */}
-      <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold mb-8">Featured</h2>
-        <div className="max-w-2xl mx-auto">
-          <div className="relative group cursor-pointer">
-            <Link href="/products">
-              <div className="relative h-[500px] bg-gray-100 overflow-hidden rounded-lg">
-                <Image
-                  src={formatImageUrl(featuredImage) || "/placeholder.svg"}
-                  alt="Men&apos;s Collection"
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.src = "/placeholder.svg?height=500&width=600"
-                  }}
-                />
-              </div>
-              <div className="mt-4 text-center">
-                <h3 className="text-xl font-semibold">Men&apos;s Collection</h3>
-                <p className="text-gray-600 mb-4">Step into comfort and style</p>
-                <Button variant="outline">Shop Men&apos;s</Button>
-              </div>
+        <div className="absolute inset-0 flex items-center justify-center text-white text-center px-4">
+          <div className="max-w-4xl">
+            <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tight">FEAR NOTHING</h1>
+            <p className="text-lg md:text-xl mb-8">The 2025 National Team Collections have arrived.</p>
+            <Link
+              href="/products?category=fear-nothing"
+              className="inline-block bg-white text-black hover:bg-gray-100 font-medium px-8 py-3 text-base rounded-full"
+            >
+              Shop
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Trending Section */}
-      <section className="bg-gray-50 py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-8">Trending</h2>
-          {productsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[1, 2, 3].map((i) => (
-                <ProductCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {trendingProducts.map((product: Product) => {
-                const image = product.images[0]?.url || "/placeholder.svg?height=300&width=400"
-                return (
-                  <Link key={product.id} href={`/products/${product.slug}`} className="group cursor-pointer">
-                    <div className="relative h-[300px] bg-white overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                      <div className="w-full h-full flex items-center justify-center p-8">
-                        <Image
-                          src={formatImageUrl(image) || "/placeholder.svg"}
-                          alt={product.title}
-                          fill
-                          className="object-contain group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement
-                            target.src = "/placeholder.svg?height=300&width=400"
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <h3 className="font-semibold">{product.title}</h3>
-                      <p className="text-gray-600">SAR {product.price.toLocaleString()}.00</p>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
+      {/* Featured Frames */}
+      <section className="w-full px-4 md:px-8 py-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Mbappe Frame */}
+        <div className="relative h-[500px] bg-black rounded-lg overflow-hidden">
+          <Image src="/images/mbappe.jpg" alt="Mbappe" fill className="object-cover" />
+          <div className="absolute inset-0 flex flex-col justify-end p-12 text-black">
+            <p className="text-xl mb-2">Athlete Picks</p>
+            <h2 className="text-5xl font-bold mb-8">Kylian Mbappe</h2>
+            <Link href="/products?category=mbappe">
+              <Button className="bg-white text-black hover:bg-gray-100 w-24 rounded-full">Shop</Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Nike General Frame */}
+        <div className="relative h-[500px] rounded-lg overflow-hidden">
+          <Image src="/images/WebSale2.webp" alt="Nike Field General" fill className="object-cover" />
+          <div className="absolute inset-0 flex flex-col justify-end p-12 text-white">
+            <p className="text-xl mb-2">Nike Field General</p>
+            <h2 className="text-5xl font-bold mb-8">A Revamped Football Icon</h2>
+            <Link href="/products?category=nike-field-general">
+              <Button className="bg-white text-black hover:bg-gray-100 w-24 rounded-full">Shop</Button>
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold mb-8">Shop by Category</h2>
-        {categoriesLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-[250px] bg-gray-200 rounded-lg animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {categories.map((category: Category) => {
-              const categoryName = category.attributes?.name || category.name || "Category"
-              const categorySlug = category.attributes?.slug || category.slug || String(categoryName).toLowerCase()
-              const categoryImage =
-                category.attributes?.image?.data?.attributes?.url ||
-                category.image?.url ||
-                `/placeholder.svg?height=250&width=300&text=${encodeURIComponent(String(categoryName))}`
-
-              return (
-                <Link
-                  key={category.id || categorySlug}
-                  href={`/products?category=${categorySlug}`}
-                  className="text-center group cursor-pointer"
-                >
-                  <div className="relative h-[250px] bg-gray-100 rounded-lg overflow-hidden mb-4">
-                    <Image
-                      src={formatImageUrl(String(categoryImage)) || "/placeholder.svg"}
-                      alt={String(categoryName)}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.src = `/placeholder.svg?height=250&width=300&text=${encodeURIComponent(String(categoryName))}`
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <h3 className="text-white text-xl font-bold text-center px-4">{String(categoryName)}</h3>
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        )}
+      {/* Tennis Hero */}
+      <section className="relative h-[600px] rounded-lg overflow-hidden mx-4 md:mx-8 mb-8">
+        <Image src="/images/shoptennis.jpg" alt="Tennis" fill className="object-cover" />
+        <div className="absolute inset-0 flex flex-col justify-center items-center text-center text-white px-4">
+          <p className="text-xl mb-4">Carlos Alcaraz</p>
+          <h2 className="text-5xl md:text-7xl font-black mb-8 tracking-tight">CABEZA. CORAZÓN. HISTORIA.</h2>
+          <Link href="/products?category=tennis">
+            <Button className="bg-white text-black hover:bg-gray-100 px-8 py-3 rounded-full font-medium">
+              Shop Tennis
+            </Button>
+          </Link>
+        </div>
       </section>
+
+      {/* Style & Summer Section */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-8 pb-8">
+        {/* Shox R4 */}
+        <div className="relative h-[500px] rounded-lg overflow-hidden">
+          <Image src="/images/Style1.webp" alt="Shox R4" fill className="object-cover" />
+          <div className="absolute inset-0 flex flex-col justify-end p-12 text-white">
+            <p className="text-xl mb-2">Shox R4</p>
+            <h2 className="text-5xl font-bold mb-8">Nike Style By</h2>
+            <Link href="/products?category=shop-r4">
+              <Button className="bg-white text-black hover:bg-gray-100 w-24 rounded-full">Shop</Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Summer Ready */}
+        <div className="relative h-[500px] rounded-lg overflow-hidden">
+          <Image src="/images/style2.jpg" alt="Summer Ready" fill className="object-cover" />
+          <div className="absolute inset-0 flex flex-col justify-end p-12 text-white">
+            <p className="text-xl mb-2">Summer Ready</p>
+            <h2 className="text-5xl font-bold mb-8">Turn Offseason On</h2>
+            <Link href="/products?category=summer-gear-up">
+              <Button className="bg-white text-black hover:bg-gray-100 w-24 rounded-full">Shop</Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Shop by Category */}
+      <section className="py-16 bg-gray-50">
+  <div className="max-w-7xl mx-auto px-4">
+    <h2 className="text-3xl font-black mb-12 text-center">Shop by Category</h2>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-6 justify-center items-center">
+      {shopCategories.map((cat) => (
+        <Link key={cat.slug} href={`/products?category=${cat.slug}`} className="group flex flex-col items-center">
+          <div className="relative h-110 bg-white rounded-lg overflow-hidden mb-4 w-full">
+            <Image
+              src={cat.image}
+              alt={cat.name}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+          <h3 className="font-semibold text-center">{cat.name}</h3>
+        </Link>
+      ))}
+    </div>
+  </div>
+</section>
     </div>
   )
 }
-
-
-
 
