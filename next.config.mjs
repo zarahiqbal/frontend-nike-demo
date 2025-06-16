@@ -29,6 +29,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  useSearchParams: {
+   // enabled: true,
+    ignoreBuildErrors: true,
+  },
 }
 
 export default nextConfig
